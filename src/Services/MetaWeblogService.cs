@@ -132,7 +132,7 @@ namespace Miniblog.Core.Services
 
             return new[] { new BlogInfo {
                 blogid ="1",
-                blogName = _config["blog:name"],
+                blogName = _config["blog:name"] ?? nameof(MetaWeblogService),
                 url = url
             }};
         }
@@ -160,7 +160,7 @@ namespace Miniblog.Core.Services
 
         private void ValidateUser(string username, string password)
         {
-            if (_userServices.ValidateUser(username, password))
+            if (_userServices.ValidateUser(username, password)==false)
             {
                 throw new MetaWeblogException("Unauthorized");
             }

@@ -75,6 +75,8 @@ namespace Miniblog.Core.Controllers
         [HttpGet, Authorize]
         public async Task<IActionResult> Edit(string id)
         {
+            ViewData["AllCats"] = (await _blog.GetCategories()).ToList();
+
             if (string.IsNullOrEmpty(id))
             {
                 return View(new Post());
@@ -109,17 +111,24 @@ namespace Miniblog.Core.Controllers
             existing.Content = post.Content.Trim();
             existing.Excerpt = post.Excerpt.Trim();
 
-            await _blog.SavePost(existing);
-
             await SaveFilesToDisk(existing);
 
-            return Redirect(post.GetLink());
+            await _blog.SavePost(existing);
+
+            return Redirect(post.GetEncodedLink());
         }
 
         private async Task SaveFilesToDisk(Post post)
         {
             var imgRegex = new Regex("<img[^>].+ />", RegexOptions.IgnoreCase | RegexOptions.Compiled);
             var base64Regex = new Regex("data:[^/]+/(?<ext>[a-z]+);base64,(?<base64>.+)", RegexOptions.IgnoreCase);
+            string[] allowedExtensions = new [] {
+              ".jpg",
+              ".jpeg",
+              ".gif",
+              ".png",
+              ".webp"
+            };
 
             foreach (Match match in imgRegex.Matches(post.Content))
             {
@@ -133,6 +142,14 @@ namespace Miniblog.Core.Controllers
                 // The HTML editor creates base64 DataURIs which we'll have to convert to image files on disk
                 if (srcNode != null && fileNameNode != null)
                 {
+                    string extension = System.IO.Path.GetExtension(fileNameNode.Value);
+
+                    // Only accept image files
+                    if (!allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
                     var base64Match = base64Regex.Match(srcNode.Value);
                     if (base64Match.Success)
                     {
@@ -190,7 +207,7 @@ namespace Miniblog.Core.Controllers
                 await _blog.SavePost(post);
             }
 
-            return Redirect(post.GetLink() + "#" + comment.ID);
+            return Redirect(post.GetEncodedLink() + "#" + comment.ID);
         }
 
         [Route("/blog/comment/{postId}/{commentId}")]
@@ -214,7 +231,7 @@ namespace Miniblog.Core.Controllers
             post.Comments.Remove(comment);
             await _blog.SavePost(post);
 
-            return Redirect(post.GetLink() + "#comments");
+            return Redirect(post.GetEncodedLink() + "#comments");
         }
     }
 }

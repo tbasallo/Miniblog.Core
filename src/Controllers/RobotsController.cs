@@ -107,7 +107,7 @@ namespace Miniblog.Core.Controllers
             Response.ContentType = "application/xml";
             string host = Request.Scheme + "://" + Request.Host;
 
-            using (XmlWriter xmlWriter = XmlWriter.Create(Response.Body, new XmlWriterSettings() { Async = true, Indent = true }))
+            using (XmlWriter xmlWriter = XmlWriter.Create(Response.Body, new XmlWriterSettings() { Async = true, Indent = true, Encoding = new UTF8Encoding(false) }))
             {
                 var posts = await _blog.GetPosts(10);
                 var writer = await GetWriter(type, xmlWriter, posts.Max(p => p.PubDate));
@@ -129,7 +129,7 @@ namespace Miniblog.Core.Controllers
                         item.AddCategory(new SyndicationCategory(category));
                     }
 
-                    item.AddContributor(new SyndicationPerson(_settings.Value.Owner, "test@example.com"));
+                    item.AddContributor(new SyndicationPerson("test@example.com", _settings.Value.Owner));
                     item.AddLink(new SyndicationLink(new Uri(item.Id)));
 
                     await writer.Write(item);
